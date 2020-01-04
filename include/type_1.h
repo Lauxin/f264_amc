@@ -292,6 +292,32 @@ struct inter_t {
 	}
 };
 
+//inter buffer stores information for mv prediction during ame
+//can be extend to support mvp in ime and any other process which needs inter mv related information
+/*************************************
+				 inter_buffer
+*************************************/
+struct inter_bf{
+	int8_t mb_partition;
+	int8_t mb_subpartition[4];
+	int16_t mv[4][4][2];
+	bool   ame_flag;
+	int16_t cp_amv[2][2];
+	int row,col;
+	int me_cost;
+
+	inter_bf& operator= (const inter_bf& arg){
+		mb_partition = arg.mb_partition;
+		ame_flag = arg.ame_flag;
+		row = arg.row;
+		col = arg.col; 
+		me_cost = arg.me_cost;
+		memcpy(mb_subpartition,arg.mb_subpartition,sizeof(mb_subpartition));
+		memcpy(mv,arg.mv,sizeof(mv));
+		memcpy(cp_amv,arg.cp_amv,sizeof(cp_amv));
+		return *this;
+	}
+};
 //ostream& operator<< (ostream& os, const inter_t& arg);
 //void sc_trace(sc_trace_file* tf, const inter_t& arg, const string& name);
 

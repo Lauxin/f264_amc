@@ -9,7 +9,11 @@
 #include "quant.h"
 #include "inter_1.h"
 #include "common.h"
+#include <iostream>
+#include <chrono>
 
+using namespace std;
+using namespace std::chrono;
  /*
   *
   */
@@ -217,16 +221,22 @@ void main(int ac, char* av[])
  *								main_proc()
  ****************************************************************************/
 	u_ime.init();
+	steady_clock::time_point t1 = steady_clock::now();
 	while (true) {
 		get_data(inter_input, cur_mb, sw);
 		u_ime.read(cur_mb, sw , cqm, param);
 		u_ime.proc();
 		u_ime.write();
-	    if ((cur_mb.x == param.frame_mb_x_total - 1) && (cur_mb.y == param.frame_mb_y_total - 1))
+	    if ((cur_mb.x == param.frame_mb_x_total - 1) && (cur_mb.y == param.frame_mb_y_total - 1)){
 			param.frame_num=param.frame_num+1;
+			u_ime.del();
+		}
 		if (param.frame_num==param.frame_total)
 	    	break;
 		}
+	steady_clock::time_point t2 = steady_clock::now();
+	cout << "run time: " << duration_cast<duration<double>>(t2 - t1).count() << " seconds.\n";
+	getchar();
 
 	fclose(inter_input);
 	

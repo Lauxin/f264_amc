@@ -13,7 +13,10 @@
 #include "config.h"
 #include "common.h"
 #include "dct.h"
+#include <iostream>
 #include <string>
+
+using namespace std;
 
 #define H_6TAPFIR(halfpel,pel0,pel1,pel2,pel3,pel4,pel5)\
 	halfpel = ((pel0 + pel5) - 5 * (pel1 + pel4) + 20 * (pel2 + pel3))
@@ -96,6 +99,17 @@ private:
 	// dump
 	FILE			*fp;
 
+	//ME buffer
+	struct inter_bf *me_buffer;
+	struct inter_bf mb_info;
+
+	//ame related variable
+	int16_t         ame_mvp[2][2][2];//mvp buffer
+	int16_t         amv[2][2];//control point mv
+	int32_t         ame_min_cost;
+	int8_t          ame_step;
+	uint8_t         pred_luma[f_LCU_SIZE][f_LCU_SIZE];
+
     // dump org&rec yuv
     uint8_t org_yuv[9 * 16][11 * 16]; //!!! h&w are fixed
     uint8_t rec_yuv[9 * 16][11 * 16];
@@ -129,6 +143,16 @@ private:
 	void update();
 	void dump();
     void dump_yuv();
+	
+	//subfunction--ame
+	void ame();
+	void get_mvp();
+	int  ame_count(int16_t mv[2][2]);
+	void ame_mcp(int16_t mv[2][2]);
+	int32_t subpel_me(int pos_x, int pos_y, int16_t mv[2],int index);
+	void solveEqual(double** dEqualCoeff,double* dAffinePara);
+	bool Gauss(double **A,double B[][4]);
+	void mode_decision_sort();
 
 
 public:
@@ -138,7 +162,7 @@ public:
 	void read(mb_t & i_cur_mb, sw_t & sw, cqm_t & i_cqm, param_t & i_param); // mb_t, sw_t, cqm_t, param_t(parameter)
 	void proc();  // mb run
 	inter_t& write();// inter_t
-
+	void del();
 
 };
 
