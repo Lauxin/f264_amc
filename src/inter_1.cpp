@@ -24,10 +24,11 @@ void inter::read(mb_t& i_cur_mb, sw_t& i_sw, cqm_t& i_cqm, param_t& i_param){
 void inter::proc()
 {
 	//init mb info buffer for a frame
-	if((cur_mb.x==0)&&(cur_mb.y==0))
-		me_buffer = new struct inter_bf[param.frame_mb_x_total*2];
-	// cout << endl << "start proc " << cur_mb.x + cur_mb.y * param.frame_mb_x_total << endl;
-    printf("start proc %d at mb(%d, %d)...\n", cur_mb.x + cur_mb.y * param.frame_mb_x_total, cur_mb.x, cur_mb.y);
+    if ((cur_mb.x == 0) && (cur_mb.y == 0)) {
+        me_buffer = new struct inter_bf[param.frame_mb_x_total * 2];
+        memset(ame_flg_mat, 0, sizeof(ame_flg_mat));
+    }
+    printf("\n\tstart proc %d at mb(%d, %d)...\n", cur_mb.x + cur_mb.y * param.frame_mb_x_total, cur_mb.x, cur_mb.y);
 	run();
 	dump();
 }
@@ -356,11 +357,12 @@ void inter::ame(){
 			continue;
 		}	
 	}
-	ame_mcp(amv_temp);
+	
 	//do iteration
 	//iteration part reffers to VVCSoftware_BMS-Revision 1583 
 	//InterSearch.cpp/interSearch::xAffineMotionEstimation function
 	for(int iter=0;iter<ame_step;iter++){
+        ame_mcp(amv_temp);
 		//get error matrix
 		for(int i=0;i<16;i++){
 			for(int j=0;j<16;j++){
@@ -462,17 +464,18 @@ void inter::ame(){
 			amv_temp[i][1] += acDeltaMv[i][1];
 			
 			if(amv_temp[i][0] < -4*sw.sr_w){
-				amv_temp[i][0] = -4*sw.sr_w;
+				amv_temp[i][0] = -4*sw.sr_w;  
 			}
-			else if(amv_temp[i][0] > 4*sw.sr_w)
-				amv_temp[i][0] = 4*sw.sr_w;
+            else if (amv_temp[i][0] > 4 * sw.sr_w) {
+                amv_temp[i][0] = 4*sw.sr_w;
+            }
 
-			if(amv_temp[i][1] < -4*sw.sr_h)
-				amv_temp[i][1] = -4*sw.sr_h;
-			else if(amv_temp[i][1] > 4*sw.sr_h)
-				amv_temp[i][1] = 4*sw.sr_h;
-			//printf("(%d,%d)\n", amv_temp[i][0], amv_temp[i][1]);
-			
+            if (amv_temp[i][1] < -4 * sw.sr_h) {
+                amv_temp[i][1] = -4 * sw.sr_h;
+            }
+            else if (amv_temp[i][1] > 4 * sw.sr_h) {
+                amv_temp[i][1] = 4 * sw.sr_h;
+            }
 		}
 		int16_t cost_temp = 0;
 		cost_temp = ame_count(amv_temp);
@@ -692,7 +695,6 @@ void inter::ame_mcp(int16_t mv[2][2]){
 			pixel_copy_wxh(1,1,&pred_luma[i][j],1,&ref_mb[interplot_index][0][0],1);
 		}
 	}
-	cout << endl;
 }
 
 //solve linear equation Ax=b
@@ -765,6 +767,7 @@ bool inter::Gauss(double **A, double B[][4]){
 
 //模式判决函数重载，判断是否采纳AME
 void inter::mode_decision_sort(){
+    printf("amv = (%d, %d) & (%d, %d) \n", amv[0][0], amv[0][1], amv[1][0], amv[1][1]);
 	if(ame_min_cost < mb_info.me_cost){
 		mb_info.ame_flag = 1;
 		mb_info.me_cost = ame_min_cost;
@@ -775,6 +778,11 @@ void inter::mode_decision_sort(){
 		mb_info.mb_subpartition[3] = D_L0_8x8;
 		memcpy(mb_info.cp_amv,amv,sizeof(amv));
 		me_buffer[(cur_mb.y%2)*param.frame_mb_x_total+cur_mb.x] = mb_info;
+
+        printf("ame_flag = 1\n");
+        ame_mcp(mb_info.cp_amv);
+        pixel_copy_wxh(16, 16, &min_mb[0][0], 16, &pred_luma[0][0], 16);
+        ame_flg_mat[cur_mb.y][cur_mb.x] = 1;
 	}
 	else
 		return;
@@ -1917,8 +1925,8 @@ void inter::dump_yuv() {
         }
     }
     if ((cur_mb.x == param.frame_mb_x_total - 1) && (cur_mb.y == param.frame_mb_y_total - 1)) {
-        char*  file_org = new char[20];
-        sprintf(file_org, "org_y_%d.csv", param.frame_num);
+        char*  file_org = new char[100];
+        sprintf(file_org, "D:\\MyFile\\MATLAB\\h264_mc\\org_y_%d.csv", param.frame_num);
         fp_org = fopen(file_org,"w");
         for (int i = 0; i < 9 * 16; i++) {
             for (int j = 0; j < 11 * 16; j++) {
@@ -1927,8 +1935,8 @@ void inter::dump_yuv() {
             fprintf(fp_org, "\n");
         }
 
-        char* file_rec = new char[20];
-        sprintf(file_rec, "rec_y_%d.csv", param.frame_num);
+        char* file_rec = new char[100];
+        sprintf(file_rec, "D:\\MyFile\\MATLAB\\h264_mc\\rec_y_%d.csv", param.frame_num);
         fp_rec = fopen(file_rec, "w");
         for (int i = 0; i < 9 * 16; i++) {
             for (int j = 0; j < 11 * 16; j++) {
@@ -1937,7 +1945,19 @@ void inter::dump_yuv() {
             fprintf(fp_rec, "\n");
         }
 
+        char* file_ameflg = new char[100];
+        sprintf(file_ameflg, "D:\\MyFile\\MATLAB\\h264_mc\\ame_flg_%d.csv", param.frame_num);
+        fp_ameflg = fopen(file_ameflg, "w");
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 11; j++) {
+                fprintf(fp_ameflg, "%1d, ", ame_flg_mat[i][j]);
+            }
+            fprintf(fp_ameflg, "\n");
+        }
+
         fclose(fp_org);
         fclose(fp_rec);
+        fclose(fp_ameflg);
+
     }
 }

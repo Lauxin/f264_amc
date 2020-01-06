@@ -115,6 +115,8 @@ private:
     uint8_t rec_yuv[9 * 16][11 * 16];
     FILE* fp_org;
     FILE* fp_rec;
+    FILE* fp_ameflg;
+    uint8_t ame_flg_mat[9][11];
 
 	// function
 
